@@ -55,10 +55,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <OpenCL/opencl.h>
+#include <CL/cl.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -113,8 +115,25 @@ int main(int argc, char** argv)
     
     // Connect to a compute device
     //
+    cl_uint numPlatforms = 0;
+    err = clGetPlatformIDs(0, NULL, &numPlatforms);
+    if (err != CL_SUCCESS || numPlatforms == 0)
+    {
+        printf("Error: No platforms found. Check OpenCL installation!\n");
+        return EXIT_FAILURE;
+    }
+
+    cl_platform_id* platforms =
+        (cl_platform_id*)malloc(numPlatforms * sizeof(cl_platform_id));
+    err = clGetPlatformIDs(numPlatforms, platforms, NULL);
+    if (err != CL_SUCCESS)
+    {
+        printf("Error: Failed to get platform IDs!\n");
+        return EXIT_FAILURE;
+    }
+
     int gpu = 1;
-    err = clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device_id, NULL);
+    err = clGetDeviceIDs(platforms[0], gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device_id, NULL);
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to create a device group!\n");
